@@ -17,6 +17,16 @@ package
 		//
 		//------------------------
 		
+		public static const CELL_SIDE_SIZE:Number = 20.0;
+		public static const BALL_SIZE:Number = 25.0;
+		
+		public static const GRID_WIDTH:int = 16;
+		public static const GRID_HEIGHT:int = 24;
+		
+		//------------------------
+		//
+		//------------------------
+		
 		private var _transitionManager:ScreenSlidingStackTransitionManager;
 		
 		//------------------------
