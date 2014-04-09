@@ -19,12 +19,6 @@ package
 		//
 		//------------------------
 		
-		private var _group:ButtonGroup;
-		
-		//------------------------
-		//
-		//------------------------
-		
 		/**
 		 * Constructor
 		 */
@@ -42,16 +36,16 @@ package
 		{
 			layout = new AnchorLayout();
 			
-			_group = new ButtonGroup();
-			_group.direction = ButtonGroup.DIRECTION_VERTICAL;
-			_group.gap = 5;
-			_group.dataProvider = new ListCollection([
+			var buttonGroup:ButtonGroup = new ButtonGroup();
+			buttonGroup.direction = ButtonGroup.DIRECTION_VERTICAL;
+			buttonGroup.gap = 5;
+			buttonGroup.dataProvider = new ListCollection([
 				{ label: "Play", triggered: onPlayHandler },
 				{ label: "Score", triggered: onScoreHandler }
 			]);
-			_group.layoutData = new AnchorLayoutData(NaN, NaN, NaN, NaN, 0, 0);
+			buttonGroup.layoutData = new AnchorLayoutData(NaN, NaN, NaN, NaN, 0.0, 0.0);
 			
-			addChild(_group);
+			addChild(buttonGroup);
 		}
 		
 		/**

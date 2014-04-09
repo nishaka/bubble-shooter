@@ -22,8 +22,14 @@ package field
 		
 		private var _gridLayer:Image;
 		
+		private var _hexHighlightLayer:Image;
+		private var _highlightedHex:Hex;
+		
 		private var _quadWidth:Number;		// quad grid cell width
 		private var _quadHeight:Number;		// quad grid cell height
+		
+		private var _cellWidth:Number;		// width of one hexagon cell
+		private var _cellHeight:Number;		// height of one hexagon cell
 		
 		//------------------------
 		//
@@ -43,11 +49,18 @@ package field
 			_hexHeight = hexHeight;
 			_l = hexSideSize;
 			
+			_hexHighlightLayer = new Image(Texture.fromBitmapData(Dummy.getHexagon(hexSideSize, 0xffffff, 0.1)));
+			_hexHighlightLayer.visible = false;
+			addChild(_hexHighlightLayer);
+			
 			_gridLayer = new Image(Texture.fromBitmapData(Dummy.getHexGrid(hexWidth, hexHeight, hexSideSize, 0x000000, 0.15)));
 			addChild(_gridLayer);
 			
 			_quadWidth = hexSideSize * 0.866;
 			_quadHeight = hexSideSize + hexSideSize / 2;
+			
+			_cellWidth = _quadWidth * 2;
+			_cellHeight = _l * 2;
 		}
 		
 		/**
@@ -122,6 +135,55 @@ package field
 			}
 			
 			return new Hex(hx, hy);
+		}
+		
+		/**
+		 * Highlight specified hexagon
+		 * @param	hex	hexagon to highlighted
+		 */
+		public function highlightHex(hex:Hex):void
+		{
+			if (hex)
+			{
+				if (_highlightedHex && _highlightedHex.isEqual(hex))
+					return;
+				
+				_highlightedHex = hex.clone();
+				
+				var pos:Point = getHexPos(_highlightedHex);
+				_hexHighlightLayer.x = pos.x;
+				_hexHighlightLayer.y = pos.y;
+				
+				_hexHighlightLayer.visible = true;
+			}
+			else
+			{
+				_hexHighlightLayer.visible = false;
+			}
+		}
+		
+		/**
+		 * Get hexagon position
+		 * @param	hex	hexagon
+		 * @return	position of top left of hexagon
+		 */
+		public function getHexPos(hex:Hex):Point
+		{
+			var px:Number = hex.y % 2 ? hex.x * _cellWidth : hex.x * _cellWidth - _quadWidth;
+			var py:Number = hex.y * _quadHeight - _l / 2;
+			return new Point(px, py);
+		}
+		
+		/**
+		 * Get hexagon center point
+		 * @param	hex	hexagon
+		 * @return	position of center point of hexagon
+		 */
+		public function getHexMiddlePoint(hex:Hex):Point
+		{
+			var pos:Point = getHexPos(hex);
+			pos.offset(_quadWidth, _l);
+			return pos;
 		}
 	}
 }
