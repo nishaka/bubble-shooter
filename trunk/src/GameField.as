@@ -124,8 +124,8 @@ package
 						var hex:Hex = _grid.getHex(pos);
 						
 						var arrowAng:Number = Math.atan2(_balls.cueStartPos.y - pos.y, _balls.cueStartPos.x - pos.x);
-						if (arrowAng < 0)
-							arrowAng = pos.x < _balls.cueStartPos.x ? 0.0 : Math.PI;
+						if (arrowAng < Game.SHOOT_ANG_LIMIT && pos.x < _balls.cueStartPos.x) arrowAng = Game.SHOOT_ANG_LIMIT;
+						else if (arrowAng < 0 || arrowAng > Math.PI - Game.SHOOT_ANG_LIMIT) arrowAng = Math.PI - Game.SHOOT_ANG_LIMIT;
 						
 						_arrow.rotation = arrowAng - Math.PI / 2.0;
 						
