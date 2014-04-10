@@ -127,7 +127,6 @@ package
 						if (arrowAng < 0)
 							arrowAng = pos.x < _balls.cueStartPos.x ? 0.0 : Math.PI;
 						
-						trace("ang = " + arrowAng);
 						_arrow.rotation = arrowAng - Math.PI / 2.0;
 						
 						_grid.highlightHex(hex);
