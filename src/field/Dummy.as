@@ -2,6 +2,7 @@ package field
 {
 	import flash.display.BitmapData;
 	import flash.display.Sprite;
+	import flash.geom.Point;
 	import starling.display.Image;
 	import starling.textures.Texture;
 	
@@ -102,7 +103,7 @@ package field
 			canvas.graphics.lineTo(0, dh + l);
 			canvas.graphics.lineTo(0, dh);
 			
-			var res:BitmapData = new BitmapData(hl * 2, l * 2, true, 0x00000000);
+			var res:BitmapData = new BitmapData(Math.ceil(canvas.width), Math.ceil(canvas.height), true, 0x00000000);
 			res.draw(canvas, null, null, null, null, true);
 			return res;
 		}
@@ -120,12 +121,51 @@ package field
 			canvas.graphics.drawEllipse(0, 0, Game.BALL_SIZE, Game.BALL_SIZE);
 			canvas.graphics.endFill();
 			
-			var bitmapData:BitmapData = new BitmapData(Game.BALL_SIZE, Game.BALL_SIZE, true, 0x00000000);
+			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width), Math.ceil(canvas.height), true, 0x00000000);
 			bitmapData.draw(canvas, null, null, null, null, true);
 			
 			var image:Image = new Image(Texture.fromBitmapData(bitmapData));
-			image.x = Game.BALL_SIZE / 2.0;
-			image.y = Game.BALL_SIZE / 2.0;
+			image.x = -Game.BALL_SIZE / 2.0;
+			image.y = -Game.BALL_SIZE / 2.0;
+			
+			var res:starling.display.Sprite = new starling.display.Sprite();
+			res.addChild(image);
+			return res;
+		}
+		
+		/**
+		 * Create arrow to point shut directuin
+		 * @param	color		color of arrow
+		 * @param	borderColor	color of arrow border
+		 * @param	showBorder	with or without border
+		 * @return	Starling sprite of arrow with zero point in rotate axis
+		 */
+		public static function getArrow(color:uint, borderColor:uint=0x000000,
+										showBorder:Boolean=true, size:Number=7.0):starling.display.Sprite
+		{
+			var canvas:Sprite = new Sprite();
+			const vertices:Vector.<Point> = new <Point>[
+				new Point(2.0, 0.0), new Point(4.0, 6.0), new Point(3.0, 6.0),
+				new Point(3.0, 16.0), new Point(1.0, 16.0), new Point(1.0, 6.0), new Point(0.0, 6.0) ];
+			
+			if (showBorder)
+				canvas.graphics.lineStyle(1.0, borderColor);
+			
+			canvas.graphics.beginFill(color);
+			canvas.graphics.moveTo(vertices[0].x * size + 1, vertices[0].y * size)
+			for (var i:int = 1; i < vertices.length; i++)
+				canvas.graphics.lineTo(vertices[i].x * size + 1, vertices[i].y * size);
+			canvas.graphics.endFill();
+			
+			if (showBorder)
+				canvas.graphics.lineStyle();
+			
+			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width) + 2, Math.ceil(canvas.height), true, 0x00000000);
+			bitmapData.draw(canvas, null, null, null, null, true);
+			
+			var image:Image = new Image(Texture.fromBitmapData(bitmapData));
+			image.x = -canvas.width / 2.0;
+			image.y = -20.0 * size;
 			
 			var res:starling.display.Sprite = new starling.display.Sprite();
 			res.addChild(image);

@@ -25,15 +25,7 @@ package
 		public function MainMenu() 
 		{
 			super();
-			addEventListener(FeathersEventType.INITIALIZE, initializeHandler);
-		}
-		
-		/**
-		 * Initialize handler
-		 * @param	event	event
-		 */
-		private function initializeHandler(event:Event):void
-		{
+			
 			layout = new AnchorLayout();
 			
 			var buttonGroup:ButtonGroup = new ButtonGroup();
