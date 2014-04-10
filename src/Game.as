@@ -28,6 +28,9 @@ package
 		
 		public static const SHOOT_ANG_LIMIT:Number = 0.1;
 		
+		public static const BALL_SPEED:Number = 16.0;
+		public static const FPS:Number = 60.0;
+		
 		//------------------------
 		//
 		//------------------------

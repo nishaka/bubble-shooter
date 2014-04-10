@@ -2,6 +2,8 @@ package field
 {
 	import flash.geom.Point;
 	import starling.display.Sprite;
+	import flash.utils.getTimer;
+	import starling.events.Event;
 	
 	/**
 	 * Balls layer
@@ -35,6 +37,11 @@ package field
 		
 		private var _r:Number;		// Ball radius
 		
+		private var _animation:Vector.<Point> = new Vector.<Point>();
+		
+		private var _dt:Number;
+		private var _timestamp:int;
+		
 		//------------------------
 		//
 		//------------------------
@@ -66,6 +73,8 @@ package field
 			_cueStartPos = new Point(_grid.width / 2, pos.y);
 			
 			_minOffset = _cueStartPos.y - (_cueStartPos.x - _leftBorder) * Math.tan(Game.SHOOT_ANG_LIMIT);
+			
+			_dt = 1000.0 / Game.FPS;
 			
 			init();
 		}
@@ -177,6 +186,7 @@ package field
 				path.push(currentCuePos.clone());
 			}
 			
+			/*
 			for each (var p:Point in path)
 			{
 				var cross:Sprite = Dummy.getCross();
@@ -184,6 +194,116 @@ package field
 				cross.y = p.y;
 				
 				addChild(cross);
+			}
+			*/
+			
+			calcAnimation(path);
+		}
+		
+		/**
+		 * Calculate animation of cue
+		 * @param	path	path vertices
+		 */
+		private function calcAnimation(path:Vector.<Point>):void
+		{
+			_animation = new Vector.<Point>();
+			
+			if (path.length < 2)
+			{
+				_busy = false;
+				return;
+			}
+			
+			var lineBegin:Point = path.shift();
+			var rest:Number = 0.0;
+			var lineEnd:Point;
+			
+			while (path.length > 0)
+			{
+				lineEnd = path.shift();
+				
+				var ang:Number = Math.atan2(lineEnd.y - lineBegin.y, lineEnd.x - lineBegin.x);
+				var dx:Number = Math.cos(ang) * Game.BALL_SPEED;
+				var dy:Number = Math.sin(ang) * Game.BALL_SPEED;
+				
+				var px:Number, py:Number;
+				if (rest > 0)
+				{
+					px = lineBegin.x + Math.cos(ang) * rest;
+					py = lineBegin.y + Math.sin(ang) * rest;
+				}
+				else
+				{
+					px = lineBegin.x;
+					py = lineBegin.y;
+				}
+				
+				var lineWidth:Number = Math.abs(lineEnd.x - lineBegin.x);
+				var lineHeight:Number = Math.abs(lineEnd.y - lineBegin.y);
+				
+				while (Math.abs(px - lineBegin.x) <= lineWidth && Math.abs(py - lineBegin.y) <= lineHeight)
+				{
+					_animation.push(new Point(px, py));
+					px += dx;
+					py += dy;
+				}
+				
+				dx = Math.abs(px - lineBegin.x) - lineWidth;
+				dy = Math.abs(py - lineBegin.y) - lineHeight;
+				rest = Math.sqrt(dx * dx + dy * dy);
+				
+				lineBegin = lineEnd;
+			}
+			
+			/*
+			for each (var p:Point in _animation)
+			{
+				var cross:Sprite = Dummy.getCross();
+				cross.x = p.x;
+				cross.y = p.y;
+				
+				addChild(cross);
+			}
+			*/
+			
+			playCueAnimation();
+		}
+		
+		/**
+		 * Play cue animation
+		 */
+		private function playCueAnimation():void
+		{
+			_timestamp = getTimer();
+			
+			if (!hasEventListener(Event.ENTER_FRAME))
+				addEventListener(Event.ENTER_FRAME, enterFrameHandler);
+		}
+		
+		/**
+		 * Enter frame handler
+		 * @param	event	event
+		 */
+		private function enterFrameHandler(event:Event):void
+		{
+			var now:int = getTimer();
+			var currentFrame:int = Math.round((now - _timestamp) / _dt);
+			if (currentFrame < 0) currentFrame = 0;
+			
+			if (currentFrame < _animation.length)
+			{
+				// next frame
+				var pos:Point = _animation[currentFrame];
+				if (_cue)
+				{
+					_cue.x = pos.x;
+					_cue.y = pos.y;
+				}
+			}
+			else
+			{
+				// complete
+				removeEventListener(Event.ENTER_FRAME, enterFrameHandler);
 			}
 		}
 	}
