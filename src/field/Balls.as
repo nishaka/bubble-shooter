@@ -31,9 +31,7 @@ package field
 		private var _topBorder:Number;
 		private var _bottomBorder:Number;
 		
-		// left and right borders reflection gate
-		private var _angReflectionMin:Number;
-		private var _angReflectionMax:Number;
+		private var _minOffset:Number;
 		
 		private var _r:Number;		// Ball radius
 		
@@ -56,20 +54,18 @@ package field
 			
 			_grid = grid;
 			
-			_leftBorder = 0.0;
-			_rightBorder = _grid.width;
-			_topBorder = 0.0;
-			_bottomBorder = _grid.height;
+			_r = Game.BALL_SIZE / 2.0;
+			
+			_leftBorder = _r;
+			_rightBorder = _grid.width - _r;
+			_topBorder = _r;
+			_bottomBorder = _grid.height - _r;
 			
 			_lastLine = hexHeight - 3;
-			
 			var pos:Point = _grid.getHexMiddlePoint(new Hex(0, _lastLine));
 			_cueStartPos = new Point(_grid.width / 2, pos.y);
 			
-			_angReflectionMin = Math.atan(_cueStartPos.y / _cueStartPos.x);
-			_angReflectionMax = Math.PI - _angReflectionMin;
-			
-			_r = Game.BALL_SIZE / 2.0;
+			_minOffset = _cueStartPos.y - (_cueStartPos.x - _leftBorder) * Math.tan(Game.SHOOT_ANG_LIMIT);
 			
 			init();
 		}
@@ -120,38 +116,60 @@ package field
 			var ang:Number = Math.atan2(_cueStartPos.y - targetPoint.y, _cueStartPos.x - targetPoint.x);
 			
 			// Prevent "deadlocks"
-			if (ang < 0)
-				ang = targetPoint.x < _cueStartPos.x ? 0.0001 : Math.PI - 0.0001;
+			if (ang < Game.SHOOT_ANG_LIMIT && targetPoint.x < _cueStartPos.x)
+			{
+				ang = Game.SHOOT_ANG_LIMIT;
+				targetPoint.x = _leftBorder;
+				targetPoint.y = _minOffset;
+			}
+			else if (ang < 0 || ang > Math.PI - Game.SHOOT_ANG_LIMIT)
+			{
+				ang = Math.PI - Game.SHOOT_ANG_LIMIT;
+				targetPoint.x = _rightBorder;
+				targetPoint.y = _minOffset;
+			}
 			
 			// Calculate ball path
 			var currentCuePos:Point = _cueStartPos.clone();
 			
-			while (currentCuePos.y  > 0.0)
+			var iterLimit:int = 100;
+			while (currentCuePos.y  > _topBorder && iterLimit--)
 			{
 				var dx:Number = targetPoint.x - currentCuePos.x;
 				var dy:Number = targetPoint.y - currentCuePos.y;
 				var px:Number, py:Number;
 				
-				if (ang < _angReflectionMin)
+				var reflectionMinAng:Number = Math.atan((currentCuePos.y - _topBorder) / (currentCuePos.x - _leftBorder));
+				var reflectionMaxAng:Number = Math.PI - Math.atan((currentCuePos.y - _topBorder) / (_rightBorder - currentCuePos.x));
+				
+				if (ang < reflectionMinAng)
 				{
 					// Reflect from left border
+					px = _leftBorder;
+					py = currentCuePos.y - (currentCuePos.x - _leftBorder) * dy / dx;
+					if (py > _minOffset) py = _minOffset;
 					
-					trace ("left reflect");
-					break;
+					targetPoint.x = _rightBorder;
+					targetPoint.y = py - (_rightBorder - _leftBorder) * dy / dx;
 				}
-				else if (ang > _angReflectionMax)
+				else if (ang > reflectionMaxAng)
 				{
 					// Reflect from right border
+					px = _rightBorder;
+					py = currentCuePos.y + (_rightBorder - currentCuePos.x) * dy / dx;
+					if (py > _minOffset) py = _minOffset;
 					
-					trace ("right reflect");
-					break;
+					targetPoint.x = _leftBorder;
+					targetPoint.y = py + (_rightBorder - _leftBorder) * dy / dx;
 				}
 				else
 				{
-					// Throw
-					px = _cueStartPos.x - dx / dy * _cueStartPos.y;
-					py = 0.0;
+					// Through
+					px = currentCuePos.x - dx / dy * (currentCuePos.y - _topBorder);
+					py = _topBorder;
 				}
+				
+				ang = Math.PI - ang;
 				
 				currentCuePos.x = px;
 				currentCuePos.y = py;

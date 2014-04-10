@@ -26,6 +26,8 @@ package
 		public static const BALL_COLORS:Vector.<uint> = new <uint>[ 0x00ff00, 0xff0000, 0x0000ff, 0xff00ff, 0x00ffff ];
 		public static const CUE_STACK_LENGTH:int = 3;
 		
+		public static const SHOOT_ANG_LIMIT:Number = 0.1;
+		
 		//------------------------
 		//
 		//------------------------
