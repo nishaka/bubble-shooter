@@ -172,6 +172,35 @@ package field
 			return res;
 		}
 		
+		/**
+		 * Create cross
+		 * @param	color	color
+		 * @param	size	size
+		 * @return	Starling sprite of cross with zero point in the middle
+		 */
+		public static function getCross(color:uint=0x790000, size:Number=20.0):starling.display.Sprite
+		{
+			var canvas:Sprite = new Sprite();
+			
+			canvas.graphics.lineStyle(2.0, color);
+			canvas.graphics.moveTo(size / 2.0, 0.0);
+			canvas.graphics.lineTo(size / 2.0, size);
+			canvas.graphics.moveTo(0.0, size / 2.0);
+			canvas.graphics.lineTo(size, size / 2.0);
+			canvas.graphics.lineStyle();
+			
+			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width), Math.ceil(canvas.height), true, 0x00000000);
+			bitmapData.draw(canvas, null, null, null, null, true);
+			
+			var image:Image = new Image(Texture.fromBitmapData(bitmapData));
+			image.x = -size / 2.0;
+			image.y = -size / 2.0;
+			
+			var res:starling.display.Sprite = new starling.display.Sprite();
+			res.addChild(image);
+			return res;
+		}
+		
 		//------------------------
 		//
 		//------------------------
