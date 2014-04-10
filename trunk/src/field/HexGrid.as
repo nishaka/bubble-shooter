@@ -156,7 +156,7 @@ package field
 				
 				_hexHighlightLayer.visible = true;
 			}
-			else
+			else if (_hexHighlightLayer.visible)
 			{
 				_hexHighlightLayer.visible = false;
 			}
