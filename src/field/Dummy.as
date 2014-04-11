@@ -111,25 +111,20 @@ package field
 		/**
 		 * Create color ball
 		 * @param	color	color
-		 * @return	Starling sprite of ball with zero point in the middle
+		 * @return	created ball bitmap data
 		 */
-		public static function getBall(color:uint):starling.display.Sprite
+		public static function getBall(color:uint, size:Number, borderColor:uint=0x000000):BitmapData
 		{
 			var canvas:Sprite = new Sprite();
 			
+			canvas.graphics.lineStyle(1.0, borderColor);
 			canvas.graphics.beginFill(color);
-			canvas.graphics.drawEllipse(0, 0, Game.BALL_SIZE, Game.BALL_SIZE);
+			canvas.graphics.drawEllipse(1.0, 1.0, size - 2, size - 2);
 			canvas.graphics.endFill();
+			canvas.graphics.lineStyle();
 			
-			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width), Math.ceil(canvas.height), true, 0x00000000);
-			bitmapData.draw(canvas, null, null, null, null, true);
-			
-			var image:Image = new Image(Texture.fromBitmapData(bitmapData));
-			image.x = -Game.BALL_SIZE / 2.0;
-			image.y = -Game.BALL_SIZE / 2.0;
-			
-			var res:starling.display.Sprite = new starling.display.Sprite();
-			res.addChild(image);
+			var res:BitmapData = new BitmapData(Math.ceil(canvas.width + 2), Math.ceil(canvas.height + 2), true, 0x00000000);
+			res.draw(canvas, null, null, null, null, true);
 			return res;
 		}
 		
@@ -152,19 +147,19 @@ package field
 				canvas.graphics.lineStyle(1.0, borderColor);
 			
 			canvas.graphics.beginFill(color);
-			canvas.graphics.moveTo(vertices[0].x * size + 1, vertices[0].y * size)
+			canvas.graphics.moveTo(vertices[0].x * size + 1, vertices[0].y * size + 1)
 			for (var i:int = 1; i < vertices.length; i++)
-				canvas.graphics.lineTo(vertices[i].x * size + 1, vertices[i].y * size);
+				canvas.graphics.lineTo(vertices[i].x * size + 1, vertices[i].y * size + 1);
 			canvas.graphics.endFill();
 			
 			if (showBorder)
 				canvas.graphics.lineStyle();
 			
-			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width) + 2, Math.ceil(canvas.height), true, 0x00000000);
+			var bitmapData:BitmapData = new BitmapData(Math.ceil(canvas.width) + 2, Math.ceil(canvas.height) + 2, true, 0x00000000);
 			bitmapData.draw(canvas, null, null, null, null, true);
 			
 			var image:Image = new Image(Texture.fromBitmapData(bitmapData));
-			image.x = -canvas.width / 2.0;
+			image.x = -bitmapData.width / 2.0;
 			image.y = -20.0 * size;
 			
 			var res:starling.display.Sprite = new starling.display.Sprite();
