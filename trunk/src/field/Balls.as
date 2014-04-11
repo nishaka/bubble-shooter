@@ -1,9 +1,12 @@
 package field 
 {
 	import flash.geom.Point;
-	import starling.display.Sprite;
+	import flash.utils.Dictionary;
+	import starling.animation.Tween;
 	import flash.utils.getTimer;
 	import starling.events.Event;
+	import starling.core.Starling;
+	import starling.display.Sprite;
 	
 	/**
 	 * Balls layer
@@ -20,9 +23,10 @@ package field
 		
 		private var _grid:HexGrid;
 		
-		private var _cue:Sprite;
+		private var _cue:Bubble;
 		private var _cueStartPos:Point;
-		private var _cueStack:Vector.<uint> = new Vector.<uint>();
+		
+		private var _cueStack:Vector.<Bubble> = new Vector.<Bubble>();
 		
 		private var _lastLine:int;
 		
@@ -37,10 +41,7 @@ package field
 		
 		private var _r:Number;		// Ball radius
 		
-		private var _animation:Vector.<Point> = new Vector.<Point>();
-		
-		private var _dt:Number;
-		private var _timestamp:int;
+		private var _field:Vector.<Vector.<Bubble>> = new Vector.<Vector.<Bubble>>();
 		
 		//------------------------
 		//
@@ -63,18 +64,18 @@ package field
 			
 			_r = Game.BALL_SIZE / 2.0;
 			
-			_leftBorder = _r;
-			_rightBorder = _grid.width - _r;
-			_topBorder = _r;
-			_bottomBorder = _grid.height - _r;
+			var pos:Point = _grid.getHexMiddlePoint(new Hex(0, 0));
 			
-			_lastLine = hexHeight - 3;
-			var pos:Point = _grid.getHexMiddlePoint(new Hex(0, _lastLine));
+			_leftBorder = pos.x;
+			_rightBorder = _grid.width - pos.x;
+			_topBorder = pos.y;
+			_bottomBorder = _grid.height;
+			
+			_lastLine = _hexHeight - 3;
+			pos = _grid.getHexMiddlePoint(new Hex(0, _lastLine));
 			_cueStartPos = new Point(_grid.width / 2, pos.y);
 			
 			_minOffset = _cueStartPos.y - (_cueStartPos.x - _leftBorder) * Math.tan(Game.SHOOT_ANG_LIMIT);
-			
-			_dt = 1000.0 / Game.FPS;
 			
 			init();
 		}
@@ -84,15 +85,68 @@ package field
 		 */
 		private function init():void
 		{
-			_cueStack = new Vector.<uint>();
+			_cueStack = new Vector.<Bubble>();
 			for (var i:int = 0; i < Game.CUE_STACK_LENGTH; i++)
-				_cueStack.push(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]);
+				_cueStack.push(new Bubble(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]));
 			
-			_cue = Dummy.getBall(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]);
+			arrangeCueStack();
+			
+			_cue = new Bubble(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]);
 			_cue.x = _cueStartPos.x;
 			_cue.y = _cueStartPos.y;
 			
 			addChild(_cue);
+			
+			var numLines:int = Game.START_LINES_NUM > _lastLine - 1 ? _lastLine - 1 : Game.START_LINES_NUM;
+			for (var by:int = 0; by < numLines; by++)
+			{
+				var line:Vector.<Bubble> = new Vector.<Bubble>();
+				_field[by] = line;
+				
+				var bx:int, numBubbles:int;
+				
+				if (by % 2)
+				{
+					bx = 0;
+					numBubbles = _hexWidth - 1;
+				}
+				else
+				{
+					bx = 1;
+					numBubbles = _hexWidth;
+					line.push(null);
+				}
+				
+				for (; bx < numBubbles; bx++)
+				{
+					var bubble:Bubble = new Bubble(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]);
+					var pos:Point = _grid.getHexMiddlePoint(new Hex(bx, by));
+					
+					bubble.x = pos.x;
+					bubble.y = pos.y;
+					
+					addChild(bubble);
+					line.push(bubble);
+				}
+				
+				if (numBubbles < _hexWidth)
+					line.push(null);
+			}
+		}
+		
+		/**
+		 * Arrange cue stack items helper
+		 */
+		private function arrangeCueStack():void
+		{
+			var ctr:int = 0;
+			for (var i:int = Game.CUE_STACK_LENGTH - 1; i >= 0 ; i--)
+			{
+				var bubble:Bubble = _cueStack[i];
+				bubble.x = _grid.width - (Game.BALL_SIZE + ctr++ * Game.BALL_SIZE * 0.7);
+				bubble.y = _grid.height - Game.BALL_SIZE;
+				addChild(bubble);
+			}
 		}
 		
 		/**
@@ -117,9 +171,16 @@ package field
 		 */
 		public function shoot(targetPoint:Point):void
 		{
-			//_busy = true;
+			if (_busy)
+				return;
+			
+			_busy = true;
 			
 			var path:Vector.<Point> = new Vector.<Point>();
+			
+			_cue.x = _cueStartPos.x;
+			_cue.y = _cueStartPos.y;
+			
 			path.push(_cueStartPos.clone());
 			
 			var ang:Number = Math.atan2(_cueStartPos.y - targetPoint.y, _cueStartPos.x - targetPoint.x);
@@ -186,125 +247,218 @@ package field
 				path.push(currentCuePos.clone());
 			}
 			
-			/*
-			for each (var p:Point in path)
-			{
-				var cross:Sprite = Dummy.getCross();
-				cross.x = p.x;
-				cross.y = p.y;
-				
-				addChild(cross);
-			}
-			*/
-			
-			calcAnimation(path);
+			checkForIntersections(path);
+			animateCue(path);
 		}
 		
 		/**
-		 * Calculate animation of cue
+		 * Check path for intersections with existing balls
 		 * @param	path	path vertices
 		 */
-		private function calcAnimation(path:Vector.<Point>):void
+		private function checkForIntersections(path:Vector.<Point>):void
 		{
-			_animation = new Vector.<Point>();
-			
 			if (path.length < 2)
-			{
-				_busy = false;
 				return;
-			}
 			
-			var lineBegin:Point = path.shift();
-			var rest:Number = 0.0;
-			var lineEnd:Point;
+			var linesForCheck:Array = [];
 			
-			while (path.length > 0)
+			for (var by:int = 0; by < _field.length; by++)
 			{
-				lineEnd = path.shift();
-				
-				var ang:Number = Math.atan2(lineEnd.y - lineBegin.y, lineEnd.x - lineBegin.x);
-				var dx:Number = Math.cos(ang) * Game.BALL_SPEED;
-				var dy:Number = Math.sin(ang) * Game.BALL_SPEED;
-				
-				var px:Number, py:Number;
-				if (rest > 0)
+				var line:Vector.<Bubble> = _field[by];
+				for (var bx:int = 0; bx < line.length; bx++)
 				{
-					px = lineBegin.x + Math.cos(ang) * rest;
-					py = lineBegin.y + Math.sin(ang) * rest;
+					var bubble:Bubble = line[bx];
+					if (bubble)
+					{
+						// The line has bubbles
+						var pos:Point = _grid.getHexMiddlePoint(new Hex(0, by + 1));
+						linesForCheck.push({ line: by, axis: pos.y });
+						break;
+					}
+				}
+			}
+			linesForCheck.sortOn("line", Array.NUMERIC | Array.DESCENDING);
+			
+			var endPoint:Point;
+			var startPoint:Point = path[0];
+			var rawCheckpoints:Vector.<Hex> = new Vector.<Hex>();
+			var limitHex:Hex;
+			for (var i1:int = 1; i1 < path.length; i1++)
+			{
+				endPoint = path[i1];
+				
+				var dx:Number = endPoint.x - startPoint.x;
+				var dy:Number = endPoint.y - startPoint.y;
+				var k:Number = dx / dy;
+				
+				rawCheckpoints.splice(0, rawCheckpoints.length);
+				
+				for (var i2:int = 0; i2 < linesForCheck.length; i2++)
+				{
+					var checkedLine:int = linesForCheck[i2].line;
+					var axis:Number = linesForCheck[i2].axis;
+					
+					var crossPosition:Number = startPoint.x - (startPoint.y - axis) * k;
+					if (crossPosition >= _leftBorder && crossPosition <= _rightBorder)
+					{
+						// This line of path cross the line of bubbles
+						var crossHex:Hex = _grid.getHex(new Point(crossPosition, axis));
+						
+						if (limitHex)
+						{
+							rawCheckpoints.push(limitHex);
+							limitHex = null;
+						}
+						
+						rawCheckpoints.push(crossHex);
+					}
+				}
+				
+				if (i1 == path.length - 1)
+				{
+					if (limitHex)
+					{
+						rawCheckpoints.push(limitHex);
+						limitHex = null;
+					}
+					
+					rawCheckpoints.push(_grid.getHex(endPoint));
 				}
 				else
 				{
-					px = lineBegin.x;
-					py = lineBegin.y;
+					if (rawCheckpoints.length > 0 &&
+						(dx > 0 && endPoint.x == _rightBorder ||
+						 dx < 0 && endPoint.x == _leftBorder))
+					{
+						limitHex = _grid.getHex(endPoint);
+						if (limitHex.y >= 0)
+							rawCheckpoints.push(limitHex);
+						else
+							limitHex = null;
+					}
+					else
+					{
+						limitHex = null;
+					}
 				}
 				
-				var lineWidth:Number = Math.abs(lineEnd.x - lineBegin.x);
-				var lineHeight:Number = Math.abs(lineEnd.y - lineBegin.y);
-				
-				while (Math.abs(px - lineBegin.x) <= lineWidth && Math.abs(py - lineBegin.y) <= lineHeight)
+				if (rawCheckpoints.length == 0)
 				{
-					_animation.push(new Point(px, py));
-					px += dx;
-					py += dy;
+					startPoint = endPoint;
+					continue;
 				}
 				
-				dx = Math.abs(px - lineBegin.x) - lineWidth;
-				dy = Math.abs(py - lineBegin.y) - lineHeight;
-				rest = Math.sqrt(dx * dx + dy * dy);
+				var checkpoints:Vector.<Hex> = new Vector.<Hex>();
+				if (rawCheckpoints.length > 1)
+				{
+					/*
+					// Add in-between hexagons, if needed
+					var endHex:Hex;
+					var startHex:Hex = rawCheckpoints[0];
+					for (var i2:int = 1; i2 < rawCheckpoints.length; i2++)
+					{
+						checkpoints.push(startHex);
+						
+						endHex = rawCheckpoints[i2];
+						
+						if (!_grid.isNeighbours(startHex, endHex))
+						{
+							var hdy:int = endHex.x - startHex.x;
+							
+							if (hdy > 0)
+							{
+								for (var i3:int = 1; i3 <= hdy; i3++)
+									checkpoints.push(new Hex(startHex.x + i3, startHex.y));
+							}
+							else
+							{
+								for (i3 = -1; i3 >= hdy; i3--)
+									checkpoints.push(new Hex(startHex.x + i3, startHex.y));
+							}
+						}
+						
+						startHex = endHex;
+					}
+					checkpoints.push(endHex);
+				}
+				else
+				{
+					checkpoints = rawCheckpoints;*/
+				}
 				
-				lineBegin = lineEnd;
+				for each (var cp:Hex in rawCheckpoints)
+				{
+					var cross:Sprite = Dummy.getCross();
+					var p:Point = _grid.getHexMiddlePoint(cp);
+					cross.x = p.x;
+					cross.y = p.y;
+					addChild(cross);
+				}
+				
+				startPoint = endPoint;
 			}
 			
-			/*
-			for each (var p:Point in _animation)
-			{
-				var cross:Sprite = Dummy.getCross();
-				cross.x = p.x;
-				cross.y = p.y;
-				
-				addChild(cross);
-			}
-			*/
 			
-			playCueAnimation();
 		}
 		
 		/**
-		 * Play cue animation
+		 * Execute animation of cue
+		 * @param	path	path vertices
 		 */
-		private function playCueAnimation():void
+		private function animateCue(path:Vector.<Point>):void
 		{
-			_timestamp = getTimer();
+			if (path.length < 2)
+			{
+				processBubble(_cue);
+				animateNextCue();
+				return;
+			}
 			
-			if (!hasEventListener(Event.ENTER_FRAME))
-				addEventListener(Event.ENTER_FRAME, enterFrameHandler);
+			var startPoint:Point = path.shift();
+			var endPoint:Point = path[0];
+			
+			var dx:Number = endPoint.x - startPoint.x;
+			var dy:Number = endPoint.y - startPoint.y;
+			var pathLen:Number = Math.sqrt(dx * dx + dy * dy);
+			
+			var tween:Tween = new Tween(_cue, pathLen / Game.BALL_SPEED);
+			tween.animate("x", endPoint.x);
+			tween.animate("y", endPoint.y);
+			tween.onCompleteArgs = [ path ];
+			tween.onComplete = animateCue;
+			
+			Starling.juggler.add(tween);
 		}
 		
 		/**
-		 * Enter frame handler
-		 * @param	event	event
+		 * Execute next cue incoming animation
 		 */
-		private function enterFrameHandler(event:Event):void
+		private function animateNextCue():void
 		{
-			var now:int = getTimer();
-			var currentFrame:int = Math.round((now - _timestamp) / _dt);
-			if (currentFrame < 0) currentFrame = 0;
+			_cue = _cueStack.shift();
 			
-			if (currentFrame < _animation.length)
-			{
-				// next frame
-				var pos:Point = _animation[currentFrame];
-				if (_cue)
-				{
-					_cue.x = pos.x;
-					_cue.y = pos.y;
-				}
-			}
-			else
-			{
-				// complete
-				removeEventListener(Event.ENTER_FRAME, enterFrameHandler);
-			}
+			var tween:Tween = new Tween(_cue, 0.3);
+			tween.animate("x", _cueStartPos.x);
+			tween.animate("y", _cueStartPos.y);
+			tween.onComplete = function():void {
+				for each (var b:Bubble in _cueStack)
+					removeChild(b);
+				_cueStack.push(new Bubble(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]));
+				arrangeCueStack();
+				
+				_busy = false;
+			};
+			
+			Starling.juggler.add(tween);
+		}
+		
+		/**
+		 * Check bubble shoot result
+		 * @param	bubble	ex cue
+		 */
+		private function processBubble(bubble:Bubble):void
+		{
+			
 		}
 	}
 }

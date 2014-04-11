@@ -15,6 +15,13 @@ package field
 		//
 		//------------------------
 		
+		private static const oddOffsets:Vector.<Hex> = new <Hex>[ new Hex(0, -1), new Hex(1, -1), new Hex(1, 0), new Hex(1, 1), new Hex(0, 1), new Hex(-1, 0) ];
+		private static const evenOffsets:Vector.<Hex> = new <Hex>[ new Hex(-1, -1), new Hex(0, -1), new Hex(1, 0), new Hex(0, 1), new Hex(-1, 1), new Hex(-1, 0) ];
+		
+		//------------------------
+		//
+		//------------------------
+		
 		private var _hexWidth:int;
 		private var _hexHeight:int;
 		
@@ -184,6 +191,47 @@ package field
 			var pos:Point = getHexPos(hex);
 			pos.offset(_quadWidth, _l);
 			return pos;
+		}
+		
+		/**
+		 * Get the neighbour hexagons for specified cell
+		 * @param	hex	cell
+		 * @return	list of cell neighbours
+		 */
+		public function getNeighbours(hex:Hex):Vector.<Hex>
+		{
+			var res:Vector.<Hex> = new Vector.<Hex>();
+			var offsets:Vector.<Hex> = hex.y % 2 ? oddOffsets : evenOffsets;
+			
+			for each (var offset:Hex in offsets)
+			{
+				var hx:int = hex.x + offset.x;
+				var hy:int = hex.y + offset.y;
+				
+				if (hx >= 0 && hx < _hexWidth && hy >= 0 && hy < _hexHeight)
+					res.push(new Hex(hx, hy));
+			}
+			
+			return res;
+		}
+		
+		/**
+		 * Check, if hexagons are neighbours
+		 * @param	hex1	first hexagon
+		 * @param	hex2	second hexagon
+		 * @return	true, if hexagons are neighbours
+		 */
+		public function isNeighbours(hex1:Hex, hex2:Hex):Boolean
+		{
+			var offsets:Vector.<Hex> = hex1.y % 2 ? oddOffsets : evenOffsets;
+			
+			for each (var offset:Hex in offsets)
+			{
+				if (hex1.x + offset.x == hex2.x && hex1.y + offset.y == hex2.y)
+					return true;
+			}
+			
+			return false;
 		}
 	}
 }
