@@ -96,7 +96,7 @@ package field
 			_cue.y = _cueStartPos.y;
 			
 			addChild(_cue);
-			
+			/*
 			var numLines:int = Game.START_LINES_NUM > _lastLine - 1 ? _lastLine - 1 : Game.START_LINES_NUM;
 			for (var by:int = 0; by < numLines; by++)
 			{
@@ -131,7 +131,7 @@ package field
 				
 				if (numBubbles < _hexWidth)
 					line.push(null);
-			}
+			}*/
 		}
 		
 		/**
@@ -282,7 +282,7 @@ package field
 			var endPoint:Point;
 			var startPoint:Point = path[0];
 			var rawCheckpoints:Vector.<Hex> = new Vector.<Hex>();
-			var limitHex:Hex;
+			var limitHex:Hex, finalHex:Hex;
 			for (var i1:int = 1; i1 < path.length; i1++)
 			{
 				endPoint = path[i1];
@@ -348,18 +348,19 @@ package field
 					continue;
 				}
 				
-				var checkpoints:Vector.<Hex> = new Vector.<Hex>();
+				var checkpoints:Vector.<Hex>;
 				if (rawCheckpoints.length > 1)
 				{
-					/*
+					checkpoints = new Vector.<Hex>();
+					
 					// Add in-between hexagons, if needed
 					var endHex:Hex;
 					var startHex:Hex = rawCheckpoints[0];
-					for (var i2:int = 1; i2 < rawCheckpoints.length; i2++)
+					for (var i3:int = 1; i3 < rawCheckpoints.length; i3++)
 					{
 						checkpoints.push(startHex);
 						
-						endHex = rawCheckpoints[i2];
+						endHex = rawCheckpoints[i3];
 						
 						if (!_grid.isNeighbours(startHex, endHex))
 						{
@@ -367,13 +368,13 @@ package field
 							
 							if (hdy > 0)
 							{
-								for (var i3:int = 1; i3 <= hdy; i3++)
-									checkpoints.push(new Hex(startHex.x + i3, startHex.y));
+								for (var i4:int = 1; i4 <= hdy; i4++)
+									checkpoints.push(new Hex(startHex.x + i4, startHex.y));
 							}
 							else
 							{
-								for (i3 = -1; i3 >= hdy; i3--)
-									checkpoints.push(new Hex(startHex.x + i3, startHex.y));
+								for (i4 = -1; i4 >= hdy; i4--)
+									checkpoints.push(new Hex(startHex.x + i4, startHex.y));
 							}
 						}
 						
@@ -383,22 +384,109 @@ package field
 				}
 				else
 				{
-					checkpoints = rawCheckpoints;*/
+					checkpoints = rawCheckpoints;
 				}
 				
-				for each (var cp:Hex in rawCheckpoints)
+				finalHex = null;
+				for (i4 = 0; i4 < checkpoints.length; i4++)
 				{
-					var cross:Sprite = Dummy.getCross();
-					var p:Point = _grid.getHexMiddlePoint(cp);
-					cross.x = p.x;
-					cross.y = p.y;
-					addChild(cross);
+					var checkpoint:Hex = checkpoints[i4];
+					
+					var topHex:Hex = checkpoint.y % 2 ? new Hex(checkpoint.x, checkpoint.y - 1) : new Hex(checkpoint.x - 1, checkpoint.y - 1);
+					var topBubble:Bubble = getBubble(topHex);
+					if (topBubble)
+					{
+						finalHex = checkpoint;
+						break;
+					}
+					
+					topHex = checkpoint.y % 2 ? new Hex(checkpoint.x + 1, checkpoint.y - 1) : new Hex(checkpoint.x, checkpoint.y - 1);
+					topBubble = getBubble(topHex);
+					if (topBubble)
+					{
+						finalHex = checkpoint;
+						break;
+					}
+					
+					if (checkpoint.y == 0)
+					{
+						var sideHex:Hex = new Hex(checkpoint.x - 1, checkpoint.y);
+						var sideBubble:Bubble = getBubble(sideHex);
+						if (sideBubble)
+						{
+							finalHex = checkpoint;
+							break;
+						}
+						
+						sideHex = new Hex(checkpoint.x + 1, checkpoint.y);
+						sideBubble = getBubble(sideHex);
+						if (sideBubble)
+						{
+							finalHex = checkpoint;
+							break;
+						}
+					}
+				}
+				
+				if (finalHex)
+				{
+					path[i1] = _grid.getHexMiddlePoint(finalHex);
+					
+					var rest:int = path.length - (i1 + 1);
+					if (rest)
+						path.splice(i1 + 1, rest);
+					
+					insertBubble(_cue, finalHex);
 				}
 				
 				startPoint = endPoint;
 			}
 			
-			
+			if (!finalHex)
+			{
+				// No collisions detected
+				finalHex = _grid.getHex(endPoint);
+				path[path.length - 1] = _grid.getHexMiddlePoint(finalHex);
+				
+				insertBubble(_cue, finalHex);
+			}
+		}
+		
+		/**
+		 * Get bubble from specified hexagon
+		 * @param	hex	hexagon
+		 * @return	bubble in specified position
+		 */
+		private function getBubble(hex:Hex):Bubble
+		{
+			if (hex.y >= 0 && hex.y < _field.length)
+			{
+				var line:Vector.<Bubble> = _field[hex.y];
+				if (hex.x >= 0 && hex.x < line.length)
+					return line[hex.x];
+			}
+			return null;
+		}
+		
+		/**
+		 * Insert bubble to specified cell of field
+		 * @param	bubble	bubble
+		 * @param	hex		cell position
+		 */
+		private function insertBubble(bubble:Bubble, hex:Hex):void
+		{
+			if (hex.x >= 0 && hex.x < _hexWidth &&
+				hex.y >= 0 && hex.y < _lastLine)
+			{
+				while (hex.y >= _field.length)
+					_field.push(new Vector.<Bubble>());
+				
+				var line:Vector.<Bubble> = _field[hex.y];
+				while (hex.x >= line.length)
+					line.push(null);
+				
+				line[hex.x] = bubble;
+			}
 		}
 		
 		/**
