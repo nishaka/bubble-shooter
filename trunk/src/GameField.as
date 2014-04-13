@@ -42,6 +42,8 @@ package
 		
 		private var _bubblesRemoved:int;
 		
+		private var _initialized:Boolean;
+		
 		//------------------------
 		//
 		//------------------------
@@ -102,11 +104,26 @@ package
 		}
 		
 		/**
+		 * Initialize game field
+		 */
+		public function init():void
+		{
+			_initialized = true;
+			
+			_balls.init();
+			_bubblesRemoved = 0;
+			_arrow.visible = true;
+		}
+		
+		/**
 		 * Touch event handler
 		 * @param	event	event
 		 */
 		private function touchEventHandler(event:TouchEvent):void
 		{
+			if (!_initialized)
+				return;
+			
 			var touch:Touch = event.getTouch(_surface);
 			if (!touch)
 			{

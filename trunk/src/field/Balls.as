@@ -39,12 +39,14 @@ package field
 		
 		private var _r:Number;		// Ball radius
 		
-		private var _field:Vector.<Vector.<Bubble>> = new Vector.<Vector.<Bubble>>();
+		private var _field:Vector.<Vector.<Bubble>>;
 		
 		private var _signalListeners:Dictionary = new Dictionary(true);
 		
 		private var _shootCtr:int = 0;
-		private var _animationsQueue:Dictionary = new Dictionary();
+		private var _animationsQueue:Dictionary;
+		
+		private var _fallStepCtr:int = 0;
 		
 		//------------------------
 		//
@@ -74,17 +76,27 @@ package field
 			
 			pos = _grid.getHexMiddlePoint(new Hex(0, _lastLine + 2 - (_hexHeight % 2)));
 			_cueStartPos = new Point(_grid.width / 2, pos.y);
-			
-			init();
 		}
 		
 		/**
 		 * Initialize field
 		 */
-		private function init():void
+		public function init():void
 		{
+			for (var i:int = numChildren - 1; i >= 0; i--)
+				removeChildAt(i);
+			
+			_busy = false;
+			_gameOver = false;
+			_win = false;
+			
+			_field = new Vector.<Vector.<Bubble>>();
+			
+			_shootCtr = 0;
+			_animationsQueue = new Dictionary();
+			
 			_cueStack = new Vector.<Bubble>();
-			for (var i:int = 0; i < Game.CUE_STACK_LENGTH; i++)
+			for (i = 0; i < Game.CUE_STACK_LENGTH; i++)
 				_cueStack.push(new Bubble(Game.BALL_COLORS[int(Math.random() * Game.BALL_COLORS.length)]));
 			
 			arrangeCueStack();
@@ -734,11 +746,13 @@ package field
 			if (blackList.length > 1)
 			{
 				// Has bubbles for remove
+				_fallStepCtr = 0;
 				batchRemoveBubbles(blackList, "removeBubbles", checkHangingBubbles);
 			}
 			else
 			{
-				checkHangingBubbles();
+				_fallStepCtr++;
+				processFall();
 			}
 		}
 		
@@ -864,7 +878,7 @@ package field
 				return;
 			}
 			
-			if ((_shootCtr % Game.FALL_STEP) == 0)
+			if (_fallStepCtr && (_fallStepCtr % Game.FALL_STEP) == 0)
 			{
 				// time to fall
 				
