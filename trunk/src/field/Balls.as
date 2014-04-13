@@ -24,6 +24,7 @@ package field
 		private var _hexHeight:int;
 		
 		private var _grid:HexGrid;
+		private var _box:Box;
 		
 		private var _cue:Bubble;
 		private var _cueStartPos:Point;
@@ -35,13 +36,6 @@ package field
 		private var _busy:Boolean;
 		private var _gameOver:Boolean = false;
 		private var _win:Boolean = false;
-		
-		private var _leftBorder:Number;
-		private var _rightBorder:Number;
-		private var _topBorder:Number;
-		private var _bottomBorder:Number;
-		
-		private var _minOffset:Number;
 		
 		private var _r:Number;		// Ball radius
 		
@@ -74,18 +68,12 @@ package field
 			_r = Game.BALL_SIZE / 2.0;
 			
 			var pos:Point = _grid.getHexMiddlePoint(new Hex(0, 0));
+			_box = new Box(pos.x, _grid.width - pos.x, pos.y, _grid.height);
 			
-			_leftBorder = pos.x;
-			_rightBorder = _grid.width - pos.x;
-			_topBorder = pos.y;
-			_bottomBorder = _grid.height;
+			_lastLine = _hexHeight - 5 + (_hexHeight % 2);
 			
-			_lastLine = _hexHeight - 5;
-			
-			pos = _grid.getHexMiddlePoint(new Hex(0, _lastLine + 1));
+			pos = _grid.getHexMiddlePoint(new Hex(0, _lastLine + 2 - (_hexHeight % 2)));
 			_cueStartPos = new Point(_grid.width / 2, pos.y);
-			
-			_minOffset = _cueStartPos.y - (_cueStartPos.x - _leftBorder) * Math.tan(Game.SHOOT_ANG_LIMIT);
 			
 			init();
 		}
@@ -298,76 +286,10 @@ package field
 			
 			setBusy(true);
 			
-			var path:Vector.<Point> = new Vector.<Point>();
-			
 			_cue.x = _cueStartPos.x;
 			_cue.y = _cueStartPos.y;
 			
-			path.push(_cueStartPos.clone());
-			
-			var ang:Number = Math.atan2(_cueStartPos.y - targetPoint.y, _cueStartPos.x - targetPoint.x);
-			
-			// Prevent "deadlocks"
-			if (ang < Game.SHOOT_ANG_LIMIT && targetPoint.x < _cueStartPos.x)
-			{
-				ang = Game.SHOOT_ANG_LIMIT;
-				targetPoint.x = _leftBorder;
-				targetPoint.y = _minOffset;
-			}
-			else if (ang < 0 || ang > Math.PI - Game.SHOOT_ANG_LIMIT)
-			{
-				ang = Math.PI - Game.SHOOT_ANG_LIMIT;
-				targetPoint.x = _rightBorder;
-				targetPoint.y = _minOffset;
-			}
-			
-			// Calculate ball path
-			var currentCuePos:Point = _cueStartPos.clone();
-			
-			var iterLimit:int = 100;
-			while (currentCuePos.y  > _topBorder && iterLimit--)
-			{
-				var dx:Number = targetPoint.x - currentCuePos.x;
-				var dy:Number = targetPoint.y - currentCuePos.y;
-				var px:Number, py:Number;
-				
-				var reflectionMinAng:Number = Math.atan((currentCuePos.y - _topBorder) / (currentCuePos.x - _leftBorder));
-				var reflectionMaxAng:Number = Math.PI - Math.atan((currentCuePos.y - _topBorder) / (_rightBorder - currentCuePos.x));
-				
-				if (ang < reflectionMinAng)
-				{
-					// Reflect from left border
-					px = _leftBorder;
-					py = currentCuePos.y - (currentCuePos.x - _leftBorder) * dy / dx;
-					if (py > _minOffset) py = _minOffset;
-					
-					targetPoint.x = _rightBorder;
-					targetPoint.y = py - (_rightBorder - _leftBorder) * dy / dx;
-				}
-				else if (ang > reflectionMaxAng)
-				{
-					// Reflect from right border
-					px = _rightBorder;
-					py = currentCuePos.y + (_rightBorder - currentCuePos.x) * dy / dx;
-					if (py > _minOffset) py = _minOffset;
-					
-					targetPoint.x = _leftBorder;
-					targetPoint.y = py + (_rightBorder - _leftBorder) * dy / dx;
-				}
-				else
-				{
-					// Through
-					px = currentCuePos.x - dx / dy * (currentCuePos.y - _topBorder);
-					py = _topBorder;
-				}
-				
-				ang = Math.PI - ang;
-				
-				currentCuePos.x = px;
-				currentCuePos.y = py;
-				
-				path.push(currentCuePos.clone());
-			}
+			var path:Vector.<Point> = _box.getPath(_cueStartPos, targetPoint);
 			
 			if (path.length > 1)
 			{
@@ -386,6 +308,8 @@ package field
 		 */
 		private function checkForIntersections(path:Vector.<Point>):void
 		{
+			// TODO: Refactor this
+			
 			var linesForCheck:Array = [];
 			
 			for (var by:int = 0; by < _field.length; by++)
@@ -430,7 +354,7 @@ package field
 					var axis:Number = linesForCheck[i2].axis;
 					
 					var crossPosition:Number = startPoint.x - (startPoint.y - axis) * k;
-					if (crossPosition >= _leftBorder && crossPosition <= _rightBorder)
+					if (crossPosition >= _box.left && crossPosition <= _box.right)
 					{
 						// This line of path cross the line of bubbles
 						var crossHex:Hex = _grid.getHex(new Point(crossPosition, axis));
@@ -458,8 +382,8 @@ package field
 				else
 				{
 					if (rawCheckpoints.length > 0 &&
-						(dx > 0 && endPoint.x == _rightBorder ||
-						 dx < 0 && endPoint.x == _leftBorder))
+						(dx > 0 && endPoint.x == _box.right ||
+						 dx < 0 && endPoint.x == _box.left))
 					{
 						limitHex = _grid.getHex(endPoint);
 						if (limitHex.y >= 0)
@@ -610,7 +534,7 @@ package field
 				bubblesField = _field;
 				
 			if (hex.x >= 0 && hex.x < _hexWidth &&
-				hex.y >= 0 && hex.y < _lastLine)
+				hex.y >= 0 && hex.y <= _lastLine)
 			{
 				while (hex.y >= bubblesField.length)
 					bubblesField.push(new Vector.<Bubble>());
@@ -692,10 +616,10 @@ package field
 		{
 			if (path.length < 2)
 			{
-				unregisterAnimation("shoot");
-				
 				processBubble(_cue);
 				animateNextCue();
+				
+				unregisterAnimation("shoot");
 				return;
 			}
 			
@@ -1020,7 +944,8 @@ package field
 		 */
 		private function checkForFail():void
 		{
-			
+			if (_field.length >= _lastLine)
+				setGameOver(true);
 		}
 	}
 }
