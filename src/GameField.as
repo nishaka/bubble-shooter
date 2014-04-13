@@ -10,12 +10,15 @@ package
 	import field.Hex;
 	import field.HexGrid;
 	import flash.geom.Point;
+	import starling.display.Quad;
 	import starling.display.Sprite;
 	import starling.events.Touch;
 	import starling.events.TouchEvent;
 	import starling.events.Event;
 	import field.Dummy;
 	import starling.events.TouchPhase;
+	import feathers.controls.Alert;
+	import feathers.core.PopUpManager;
 	
 	/**
 	 * Game field
@@ -35,6 +38,10 @@ package
 		private var _mouseDowned:Boolean;
 		private var _lastMousePos:Point = new Point();
 		
+		private var _statistics:Statistics;
+		
+		private var _bubblesRemoved:int;
+		
 		//------------------------
 		//
 		//------------------------
@@ -42,9 +49,11 @@ package
 		/**
 		 * Constructor
 		 */
-		public function GameField() 
+		public function GameField(statistics:Statistics=null) 
 		{
 			super();
+			
+			_statistics = statistics;
 			
 			layout = new AnchorLayout();
 			
@@ -57,6 +66,7 @@ package
 			_balls = new Balls(Game.GRID_WIDTH, Game.GRID_HEIGHT, _grid);
 			_balls.onBusy = ballsOnBusy;
 			_balls.onGameOver = ballsOnGameOver;
+			_balls.onRemoveBubbles = ballsOnRemoveBubbles;
 			_surface.addChild(_balls);
 			
 			_arrow = Dummy.getArrow(0x39b54a);
@@ -65,9 +75,17 @@ package
 			_arrow.visible = false;
 			_surface.addChild(_arrow);
 			
+			var border:Quad = new Quad(2, _grid.height, 0x000000);
+			border.x = -Game.BALL_SIZE / 2
+			_surface.addChild(border);
+			
+			border = new Quad(2, _grid.height, 0x000000);
+			border.x = _grid.width - 2 + Game.BALL_SIZE / 2;
+			_surface.addChild(border);
+			
 			var layoutGroup:LayoutGroup = new LayoutGroup();
 			layoutGroup.addChild(_surface);
-			layoutGroup.layoutData = new AnchorLayoutData(NaN, NaN, NaN, NaN, 0.0, -25.0);
+			layoutGroup.layoutData = new AnchorLayoutData(NaN, NaN, NaN, NaN, Game.BALL_SIZE / 2, -25.0);
 			
 			addChild(layoutGroup);
 			
@@ -152,7 +170,23 @@ package
 		 */
 		public function ballsOnGameOver():void
 		{
-			trace ("game over");
+			if (_statistics)
+				_statistics.setScore(_balls.numShoots, _bubblesRemoved);
+			
+			var alert:Alert;
+			if (_balls.win)
+				alert = Alert.show("YOU WIN!", "Game over", new ListCollection([ { label: "Ok", triggered: onMenuHandler } ]));
+			else
+				alert = Alert.show("YOU LOSE!", "Game over", new ListCollection([ { label: "Ok", triggered: onMenuHandler } ]));
+		}
+		
+		/**
+		 * Remove bubbles handler
+		 * @param	numBubbles	number of removwd bubbles
+		 */
+		public function ballsOnRemoveBubbles(numBubbles:int):void
+		{
+			_bubblesRemoved += numBubbles;
 		}
 		
 		/**
@@ -170,7 +204,8 @@ package
 		 */
 		private function onScoreHandler(event:Event):void
 		{
-			
+			if (_statistics)
+				PopUpManager.addPopUp(_statistics);
 		}
 	}
 }

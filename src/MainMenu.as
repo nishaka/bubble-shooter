@@ -8,6 +8,7 @@ package
 	import starling.display.DisplayObject;
 	import starling.events.Event;
 	import feathers.events.FeathersEventType;
+	import feathers.core.PopUpManager;
 	
 	/**
 	 * Main menu
@@ -19,12 +20,20 @@ package
 		//
 		//------------------------
 		
+		private var _statistics:Statistics;
+		
+		//------------------------
+		//
+		//------------------------
+		
 		/**
 		 * Constructor
 		 */
-		public function MainMenu() 
+		public function MainMenu(statistics:Statistics=null)
 		{
 			super();
+			
+			_statistics = statistics;
 			
 			layout = new AnchorLayout();
 			
@@ -55,7 +64,8 @@ package
 		 */
 		private function onScoreHandler(event:Event):void
 		{
-			
+			if (_statistics)
+				PopUpManager.addPopUp(_statistics);
 		}
 	}
 }

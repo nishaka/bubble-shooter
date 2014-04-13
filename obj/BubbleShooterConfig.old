@@ -37,7 +37,7 @@
     </source-path>
     <include-libraries>
       <library>D:\Work\Bubbles\PrimaryFeather-Starling-Framework-1a50854\starling\bin\starling.swc</library>
-      <library>D:\Work\Bubbles\feathers-1.3.0\themes\AeonDesktopTheme\swc\AeonDesktopTheme.swc</library>
+      <library>D:\Work\Bubbles\feathers-1.3.0\themes\MinimalMobileTheme\swc\MinimalMobileTheme.swc</library>
       <library>D:\Work\Bubbles\feathers-1.3.0\swc\feathers.swc</library>
     </include-libraries>
   </compiler>
