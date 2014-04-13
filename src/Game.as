@@ -23,7 +23,7 @@ package
 		public static const GRID_WIDTH:int = 16;
 		public static const GRID_HEIGHT:int = 24;
 		
-		public static const BALL_COLORS:Vector.<uint> = new <uint>[ 0x00ff00, 0xff0000, 0x0000ff, 0xff00ff, 0x00ffff ];
+		public static const BALL_COLORS:Vector.<uint> = new <uint>[ 0x00ff00, 0xff0000, 0x0000ff, 0xff00ff ];
 		public static const CUE_STACK_LENGTH:int = 3;
 		
 		public static const SHOOT_ANG_LIMIT:Number = 0.1;
@@ -32,7 +32,7 @@ package
 		
 		public static const START_LINES_NUM:int = 3;
 		
-		public static const FALL_STEP:int = 3;			// Number of shoots to fall
+		public static const FALL_STEP:int = 2;			// Number of shoots to fall
 		
 		//------------------------
 		//
