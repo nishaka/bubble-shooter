@@ -181,6 +181,14 @@ package field
 		}
 		
 		/**
+		 * Remove bubbles handler (function(numBubbles:int):void)
+		 */
+		public function set onRemoveBubbles(value:Function):void
+		{
+			_signalListeners["onRemoveBubbles"] = value;
+		}
+		
+		/**
 		 * Handle cpecified event
 		 * @param	event	event name
 		 * @param	args	handler arguments
@@ -214,6 +222,14 @@ package field
 		public function get win():Boolean
 		{
 			return _win;
+		}
+		
+		/**
+		 * Current number of shoots
+		 */
+		public function get numShoots():int
+		{
+			return _shootCtr;
 		}
 		
 		/**
@@ -688,19 +704,12 @@ package field
 		{
 			var color:uint = bubble.color;
 			
+			var tmpField:Vector.<Vector.<Bubble>> = cloneField(_field);
 			var blackList:Vector.<Hex> = new Vector.<Hex>();
 			var checkList:Vector.<Hex> = new Vector.<Hex>();
-			checkList.push(_grid.getHex(new Point(bubble.x, bubble.y)))
 			
-			var alreadyInBlackList:Function = function(h:Hex):Boolean {
-				for each (var b:Hex in blackList)
-					if (b.isEqual(h))
-						return true;
-				return false;
-			};
-			
-			while (checkList.length > 0)
-			{
+			checkList.push(_grid.getHex(new Point(bubble.x, bubble.y)));
+			do {
 				var newCheckList:Vector.<Hex> = new Vector.<Hex>();
 				
 				for each (var hex:Hex in checkList)
@@ -708,18 +717,19 @@ package field
 					var neighbours:Vector.<Hex> = _grid.getNeighbours(hex);
 					for each (var neighbour:Hex in neighbours)
 					{
-						if (!alreadyInBlackList(neighbour))
+						bubble = getBubble(neighbour, tmpField);
+						if (bubble && bubble.color == color)
 						{
-							bubble = getBubble(neighbour);
-							if (bubble && bubble.color == color)
-								newCheckList.push(neighbour);
+							removeBubble(neighbour, tmpField);
+							newCheckList.push(neighbour);
 						}
 					}
 				}
 				
 				blackList = blackList.concat(checkList);
 				checkList = newCheckList;
-			}
+				
+			} while (checkList.length > 0)
 			
 			if (blackList.length > 1)
 			{
@@ -839,6 +849,8 @@ package field
 				
 				unregisterAnimation(animationName);
 			};
+			
+			handle("onRemoveBubbles", [ list.length ]);
 		}
 		
 		/**
@@ -940,7 +952,7 @@ package field
 		}
 		
 		/**
-		 * Check for user is loose
+		 * Check for user is lose
 		 */
 		private function checkForFail():void
 		{

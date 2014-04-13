@@ -49,7 +49,7 @@
   <!-- SWC Include Libraries -->
   <includeLibraries>
     <element path="..\PrimaryFeather-Starling-Framework-1a50854\starling\bin\starling.swc" />
-    <element path="..\feathers-1.3.0\themes\AeonDesktopTheme\swc\AeonDesktopTheme.swc" />
+    <element path="..\feathers-1.3.0\themes\MinimalMobileTheme\swc\MinimalMobileTheme.swc" />
     <element path="..\feathers-1.3.0\swc\feathers.swc" />
   </includeLibraries>
   <!-- SWC Libraries -->
