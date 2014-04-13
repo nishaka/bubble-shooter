@@ -32,6 +32,8 @@ package
 		
 		public static const START_LINES_NUM:int = 3;
 		
+		public static const FALL_STEP:int = 3;			// Number of shoots to fall
+		
 		//------------------------
 		//
 		//------------------------
