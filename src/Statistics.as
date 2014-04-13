@@ -18,8 +18,8 @@ package
 		//
 		//------------------------
 		
-		private static var WINDOW_WIDTH:Number = 200.0;
-		private static var WINDOW_HEIGHT:Number = 300.0;
+		private static var WINDOW_WIDTH:Number = 180.0;
+		private static var WINDOW_HEIGHT:Number = 190.0;
 		
 		private var _labels:Vector.<Label>;
 		
