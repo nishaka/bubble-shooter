@@ -55,6 +55,8 @@ package
 			_surface.addChild(_grid);
 			
 			_balls = new Balls(Game.GRID_WIDTH, Game.GRID_HEIGHT, _grid);
+			_balls.onBusy = ballsOnBusy;
+			_balls.onGameOver = ballsOnGameOver;
 			_surface.addChild(_balls);
 			
 			_arrow = Dummy.getArrow(0x39b54a);
@@ -134,6 +136,23 @@ package
 					}
 				}
 			}
+		}
+		
+		/**
+		 * Balls busy handler
+		 * @param	isBusy	is busy flag
+		 */
+		private function ballsOnBusy(isBusy:Boolean):void
+		{
+			_arrow.visible = !isBusy;
+		}
+		
+		/**
+		 * Balls game over handler
+		 */
+		public function ballsOnGameOver():void
+		{
+			trace ("game over");
 		}
 		
 		/**
